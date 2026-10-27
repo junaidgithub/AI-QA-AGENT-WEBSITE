@@ -34,6 +34,9 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    # GitHub's computers use UTC. Pakistan time for the report and the report files.
+    env:
+      TZ: Asia/Karachi
 
     steps:
       - name: Check out the code
