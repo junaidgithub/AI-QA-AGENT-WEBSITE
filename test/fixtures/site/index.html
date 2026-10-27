@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QA Fixture Home</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  .mobile-menu { display: none; }
+  .visually-hidden-check { display: none; }
+  .fake-box { display: inline-block; width: 14px; height: 14px; border: 1px solid #333; }
+  .honeypot { position: absolute; left: -10000px; }
+  #details-panel { display: none; }
+  #details-panel.open { display: block; }
+  .spacer { height: 2600px; }
+</style>
+</head>
+<body>
+  <!-- Mobile menu: hidden on desktop and placed FIRST in the DOM. -->
+  <nav class="mobile-menu">
+    <a href="/about.html">About</a>
+    <a href="/team.html">Team</a>
+  </nav>
+
+  <nav class="main-nav">
+    <a href="/" aria-label="Fixture home"><img src="/img/ok-logo.png" alt="" width="20" height="20"></a>
+    <a href="/about.html">About</a>
+    <a href="/learn-a.html">Learn more</a>
+    <a href="/learn-b-missing.html">Learn more</a>
+    <a href="/does-not-exist.html">Broken page</a>
+    <a href="/bot-999">Partner profile</a>
+    <a href="#features">Features</a>
+    <a href="#">Placeholder</a>
+    <a href="mailto:hello@example.com">hello@example.com</a>
+    <a href="tel:+15555550123">+1 555 555 0123</a>
+    <a href="/account/logout">Log out</a>
+    <a href="/social-profile" target="_blank" rel="noopener">Social profile</a>
+    <a href="/secret.html" style="display:none">Secret page</a>
+    <a href="/old-hidden-missing.html" style="visibility:hidden">Old hidden page</a>
+  </nav>
+
+  <h1>Fixture</h1>
+
+  <section class="carousel" aria-label="Promotions">
+    <img id="slide-img" src="/img/ok-1.png" alt="Slide" width="40" height="40">
+    <span id="slide-label">Slide 1</span>
+    <button type="button" aria-label="Next slide" id="next-slide">›</button>
+  </section>
+
+  <button type="button" id="toggle-details">Show details</button>
+  <div id="details-panel">Detailed product information.</div>
+
+  <!-- Side-effecting action outside of any form: must never be clicked. -->
+  <button type="button" id="buy-now">Buy now</button>
+
+  <button type="button" title="Open menu" id="icon-button"><svg width="10" height="10"><rect width="10" height="10"/></svg></button>
+
+  <input type="hidden" name="csrf_token" value="abc">
+  <label>Search site <input type="search" name="q" placeholder="Search"></label>
+
+  <h2 id="features">Features</h2>
+
+  <!-- Form 1: realistic constraints that the old value generator violated. -->
+  <form id="contact" action="/api/contact" method="post">
+    <label>Full name <input name="fullname" required pattern="[A-Za-z ]{2,40}"></label>
+    <label>Email <input type="email" name="email" required></label>
+    <label>Phone <input type="tel" name="phone" required pattern="[0-9]{10}"></label>
+    <label>Guests <input type="number" name="guests" required min="2" max="10" step="2"></label>
+    <label>Preferred date <input type="date" name="visit" required min="2030-01-01"></label>
+    <label>Topic
+      <select name="topic" required>
+        <option value="">Choose a topic</option>
+        <option value="sales">Sales</option>
+        <option value="support">Support</option>
+      </select>
+    </label>
+    <label>Message <textarea name="message" required minlength="20"></textarea></label>
+    <label for="terms"><span class="fake-box"></span> I accept the terms</label>
+    <input type="checkbox" id="terms" name="terms" required class="visually-hidden-check">
+    <label>Attachment <input type="file" name="attachment" required></label>
+    <input type="text" name="website" class="honeypot" tabindex="-1" autocomplete="off" style="display:none">
+    <button type="submit">Send Message</button>
+  </form>
+
+  <!-- Form 2: submit label that is not in any keyword list. -->
+  <form id="newsletter" action="/api/newsletter" method="post">
+    <label>Newsletter email <input type="email" name="newsletter_email" required></label>
+    <button>Subscribe</button>
+  </form>
+
+  <h2>Gallery</h2>
+  <img src="/img/ok-photo.png" alt="Photo" width="30" height="30">
+  <img src="/img/missing-photo.png" alt="Missing photo" width="30" height="30">
+  <img src="/img/not-an-image.png" alt="Corrupt photo" width="30" height="30">
+  <img src="/img/icon.svg" alt="Vector icon">
+  <div class="spacer"></div>
+  <img src="/img/ok-lazy.png" alt="Lazy photo" loading="lazy" width="30" height="30">
+
+<script>
+  // Autoplaying carousel: changes visible state on its own.
+  let slide = 1;
+  setInterval(() => {
+    slide = slide % 3 + 1;
+    document.getElementById("slide-img").src = "/img/ok-" + slide + ".png";
+    document.getElementById("slide-label").textContent = "Slide " + slide;
+  }, 3000);
+  document.getElementById("next-slide").addEventListener("click", () => {
+    slide = slide % 3 + 1;
+    document.getElementById("slide-img").src = "/img/ok-" + slide + ".png";
+    document.getElementById("slide-label").textContent = "Slide " + slide;
+  });
+
+  document.getElementById("toggle-details").addEventListener("click", event => {
+    const panel = document.getElementById("details-panel");
+    panel.classList.toggle("open");
+    event.target.textContent = panel.classList.contains("open") ? "Hide details" : "Show details";
+  });
+
+  document.getElementById("buy-now").addEventListener("click", () => {
+    fetch("/api/purchase", { method: "POST", body: "{}" });
+    document.body.insertAdjacentHTML("beforeend", "<p>Order placed</p>");
+  });
+
+  // Clicking the styled label toggles the hidden checkbox (common custom-checkbox pattern).
+</script>
+</body>
+</html>

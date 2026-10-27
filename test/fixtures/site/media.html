@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QA Fixture Media</title>
+<style>
+  @media (max-width: 767px) { header nav { display: none; } }
+</style>
+</head>
+<body>
+  <header><nav><a href="/about.html">About</a> <a href="/team.html">Team</a></nav></header>
+  <h1>Media and FAQ</h1>
+  <!-- A valid image that takes longer than the decode timeout: slow, not broken. -->
+  <img src="/img/slow-ok.png" alt="Slow but valid" width="20" height="20">
+  <!-- Served as image/png but not image data: genuinely broken. -->
+  <img src="/img/not-an-image.png" alt="Corrupt" width="20" height="20">
+  <!-- Hidden images with an empty src (e.g. in a closed mega-menu): "no source yet", not broken. -->
+  <div style="display:none">
+    <img src="" alt="">
+    <img src="" data-src="/img/ok-lazy-menu.png" alt="Lazy menu image">
+  </div>
+  <!-- An FAQ disclosure button must not be mistaken for a mobile menu toggle. -->
+  <section>
+    <button type="button" aria-expanded="false" aria-controls="faq-1" class="faq-toggle">Which plan is right for me?</button>
+    <div id="faq-1" hidden>Any plan.</div>
+  </section>
+  <!-- Full-screen cookie banner that blocks every click until dismissed. -->
+  <div class="cookie-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000">
+    <div class="cookie-box" style="background:#fff;padding:20px;margin:40vh auto 0;width:300px">We use cookies.</div>
+  </div>
+  <script>
+    document.querySelector(".faq-toggle").addEventListener("click", event => {
+      const answer = document.getElementById("faq-1");
+      answer.hidden = !answer.hidden;
+      event.currentTarget.setAttribute("aria-expanded", String(!answer.hidden));
+    });
+  </script>
+</body>
+</html>

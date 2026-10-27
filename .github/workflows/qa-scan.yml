@@ -1,0 +1,89 @@
+# Scans a website with the AI QA Agent from GitHub.
+# Manual only: open the Actions tab, choose "Run QA Scan", click "Run workflow",
+# fill in the form and press the green button. The report is attached to the
+# run as the "qa-report" artifact, and a short summary appears on the run page.
+name: Run QA Scan
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Website URL (http or https)"
+        required: true
+        type: string
+      max_pages:
+        description: "Max pages to scan (1 = only this page)"
+        required: true
+        default: "25"
+        type: string
+      mobile:
+        description: "Include mobile view"
+        required: true
+        default: true
+        type: boolean
+      fail_on_defects:
+        description: "Mark the run as failed (red) if defects are found"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install the Chromium browser
+        run: npx playwright install --with-deps chromium
+
+      # Inputs are passed through environment variables, never pasted into the script.
+      - name: Run QA scan
+        env:
+          SCAN_URL: ${{ inputs.url }}
+          MAX_PAGES: ${{ inputs.max_pages }}
+          MOBILE: ${{ inputs.mobile }}
+          # Larger scans get more time than the 30-minute default (max 100 minutes).
+          QA_MAX_DURATION_MS: "6000000"
+        run: |
+          case "$SCAN_URL" in
+            http://*|https://*) ;;
+            *) echo "::error::The URL must start with http:// or https://"; exit 1 ;;
+          esac
+          if ! [[ "$MAX_PAGES" =~ ^[0-9]+$ ]] || [ "$MAX_PAGES" -lt 1 ] || [ "$MAX_PAGES" -gt 100 ]; then
+            echo "::error::Max pages must be a whole number from 1 to 100"; exit 1
+          fi
+          args=("$SCAN_URL" "--pages=$MAX_PAGES")
+          if [ "$MOBILE" = "true" ]; then args+=("--mobile"); fi
+          node agent/ai-qa-pipeine.js "${args[@]}"
+
+      - name: Write the run summary
+        if: always()
+        run: node scripts/github-summary.js
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: qa-report
+          path: reports/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Fail the run if defects were found
+        if: ${{ inputs.fail_on_defects }}
+        run: node scripts/github-summary.js --check

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QA Fixture Forms</title>
+</head>
+<body>
+  <h1>Form scenarios</h1>
+
+  <!-- A: JavaScript-only validation (aria-invalid) and a submit button enabled only when valid. -->
+  <form id="js-validated" action="/api/js-validated" method="post" novalidate>
+    <label for="js-email">Work email</label>
+    <input id="js-email" name="work_email" type="text" aria-required="true">
+    <label for="js-password">Password</label>
+    <input id="js-password" name="password" type="password" required pattern="(?=.*\d)(?=.*[A-Z]).{8,}">
+    <button type="submit" id="js-submit" disabled>Create account</button>
+  </form>
+
+  <!-- B: A field whose custom rule the agent cannot guess: must be reported NOT_VERIFIED, never FAIL or PASS. -->
+  <form id="impossible" action="/api/impossible" method="post">
+    <label>Invitation code <input name="invite" required></label>
+    <button type="submit">Join</button>
+  </form>
+
+  <!-- C: Form inside a closed dialog: hidden on load, not interacted with. -->
+  <dialog id="login-dialog">
+    <form id="dialog-form" action="/api/login" method="post">
+      <label>Username <input name="username" required></label>
+      <button type="submit">Log in</button>
+    </form>
+  </dialog>
+
+  <!-- D: Form with no fillable fields (e.g. add to cart). -->
+  <form id="cart" action="/api/cart" method="post">
+    <input type="hidden" name="sku" value="SKU-1">
+    <button type="submit">Add to cart</button>
+  </form>
+
+  <!-- E: Form that auto-saves with POST while typing: the guard must block it. -->
+  <form id="autosave" action="/api/autosave" method="post">
+    <label>Display name <input name="display_name"></label>
+    <label>Region <select name="region" required><option>Europe</option><option>Asia</option></select></label>
+    <button type="submit">Save profile</button>
+  </form>
+
+  <!-- F: GET filter form that a script submits on change via form.submit() (no submit event). -->
+  <form id="filter" action="/results" method="get">
+    <label>Sort by <select name="sort" onchange="this.form.submit()"><option value="">Default</option><option value="price">Price</option></select></label>
+  </form>
+
+  <div style="height:2000px"></div>
+  <!-- Far below the fold and does nothing: Playwright's auto-scroll must not count as an effect. -->
+  <button type="button" id="inert">Show more</button>
+
+<script>
+  const email = document.getElementById("js-email");
+  const password = document.getElementById("js-password");
+  const submit = document.getElementById("js-submit");
+  const emailOk = () => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value);
+  function refresh() {
+    submit.disabled = !(emailOk() && password.checkValidity());
+  }
+  email.addEventListener("blur", () => {
+    email.setAttribute("aria-invalid", emailOk() ? "false" : "true");
+  });
+  email.addEventListener("input", refresh);
+  password.addEventListener("input", refresh);
+
+  const invite = document.querySelector("[name=invite]");
+  invite.addEventListener("input", () => {
+    invite.setCustomValidity(invite.value === "magic-42" ? "" : "Unknown invitation code");
+  });
+  invite.setCustomValidity("Unknown invitation code");
+
+  document.querySelector("[name=display_name]").addEventListener("change", event => {
+    fetch("/api/autosave", { method: "POST", body: JSON.stringify({ name: event.target.value }) }).catch(() => {});
+  });
+</script>
+</body>
+</html>
